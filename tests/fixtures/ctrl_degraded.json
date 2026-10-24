@@ -1,0 +1,126 @@
+{
+ "Controllers": [
+  {
+   "Command Status": {
+    "Controller": 0,
+    "Status": "Success",
+    "Description": "None"
+   },
+   "Response Data": {
+    "Basics": {
+     "Controller": 0,
+     "Model": "MegaRAID 9580-8i8e",
+     "Serial Number": "SPF0000000"
+    },
+    "Status": {
+     "Controller Status": "Optimal",
+     "Memory Correctable Errors": 0,
+     "Memory Uncorrectable Errors": 0,
+     "BBU Status": "NA"
+    },
+    "HwCfg": {
+     "BBU": "Absent",
+     "ROC temperature(Degree Celsius)": 66
+    },
+    "Virtual Drives": 2,
+    "VD LIST": [
+     {
+      "DG/VD": "0/239",
+      "TYPE": "RAID6",
+      "State": "Optl",
+      "Access": "RW",
+      "Consist": "Yes",
+      "Cache": "RAWBD",
+      "Cac": "-",
+      "sCC": "ON",
+      "Size": "32.741 TB",
+      "Name": "daily"
+     },
+     {
+      "DG/VD": "1/238",
+      "TYPE": "RAID6",
+      "State": "Dgrd",
+      "Access": "RW",
+      "Consist": "Yes",
+      "Cache": "RAWBD",
+      "Cac": "-",
+      "sCC": "ON",
+      "Size": "98.223 TB",
+      "Name": "storage"
+     }
+    ],
+    "Physical Drives": 4,
+    "PD LIST": [
+     {
+      "EID:Slt": "251:0",
+      "DID": 11,
+      "State": "Onln",
+      "DG": 0,
+      "Size": "16.370 TB",
+      "Intf": "SAS",
+      "Med": "HDD",
+      "SED": "N",
+      "PI": "N",
+      "SeSz": "512B",
+      "Model": "MG09SCA18TE     ",
+      "Sp": "U",
+      "Type": "-"
+     },
+     {
+      "EID:Slt": "251:1",
+      "DID": 10,
+      "State": "Onln",
+      "DG": 0,
+      "Size": "16.370 TB",
+      "Intf": "SAS",
+      "Med": "HDD",
+      "SED": "N",
+      "PI": "N",
+      "SeSz": "512B",
+      "Model": "MG09SCA18TE     ",
+      "Sp": "U",
+      "Type": "-"
+     },
+     {
+      "EID:Slt": "251:4",
+      "DID": 8,
+      "State": "Offln",
+      "DG": 1,
+      "Size": "16.370 TB",
+      "Intf": "SAS",
+      "Med": "HDD",
+      "SED": "N",
+      "PI": "N",
+      "SeSz": "512B",
+      "Model": "MG09SCA18TE     ",
+      "Sp": "U",
+      "Type": "-"
+     },
+     {
+      "EID:Slt": "251:5",
+      "DID": 3,
+      "State": "Rbld",
+      "DG": 1,
+      "Size": "16.370 TB",
+      "Intf": "SAS",
+      "Med": "HDD",
+      "SED": "N",
+      "PI": "N",
+      "SeSz": "512B",
+      "Model": "MG09SCA18TE     ",
+      "Sp": "U",
+      "Type": "-"
+     }
+    ],
+    "Cachevault_Info": [
+     {
+      "Model": "CVPM05",
+      "State": "Degraded",
+      "Temp": "38C",
+      "Mode": "-"
+     }
+    ]
+   }
+  }
+ ]
+}

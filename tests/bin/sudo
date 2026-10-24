@@ -1,0 +1,5 @@
+#!/bin/bash
+# Fake sudo for the tests: insists on -n, then runs the command.
+[ "$1" = "-n" ] || { echo "fake sudo: expected -n" >&2; exit 1; }
+shift
+exec "$@"

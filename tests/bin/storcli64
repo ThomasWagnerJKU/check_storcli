@@ -1,0 +1,10 @@
+#!/bin/bash
+# Fake storcli64 for the tests: replays the fixtures named in CTRL_FIXTURE / DRIVE_FIXTURE.
+# HANG=1 never answers.
+[ -n "$HANG" ] && exec sleep 30
+dir=$(dirname "$0")/../fixtures
+case "$*" in
+    "/call show all J")           cat "$dir/${CTRL_FIXTURE:-ctrl_optimal.json}" ;;
+    "/call/eall/sall show all J") cat "$dir/${DRIVE_FIXTURE:-drives_ok.json}" ;;
+    *) echo "unexpected arguments: $*"; exit 1 ;;
+esac

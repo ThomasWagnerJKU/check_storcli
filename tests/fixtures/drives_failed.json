@@ -1,0 +1,12 @@
+{
+  "Controllers": [
+    {
+      "Command Status": {
+        "Controller": 0,
+        "Status": "Failure",
+        "Description": "Show Drive Information Failed."
+      },
+      "Response Data": {}
+    }
+  ]
+}

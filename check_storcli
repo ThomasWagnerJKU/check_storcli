@@ -1,0 +1,223 @@
+#!/bin/bash
+# Nagios/Icinga plugin to check Broadcom/LSI MegaRAID controllers via storcli's
+# JSON output: controller, virtual drives, physical drives (state, errors, SMART,
+# temperature) and CacheVault/BBU. Linux sibling of check_storcli.ps1.
+#
+# Copyright (C) 2026 Thomas Wagner <thomas.wagner@jku.at>
+# SPDX-License-Identifier: GPL-2.0-or-later
+
+VERSION="0.1"
+
+STORCLI=""
+TEMP_WARN=50
+TEMP_CRIT=60
+MEDIA_ERR_WARN=1
+ROC_WARN=95
+ROC_CRIT=105
+TIMEOUT=60
+SUDO="sudo -n"
+
+usage() {
+    cat <<EOF
+Usage: $0 [-s storcli] [-w temp] [-c temp] [-m media_errors] [-r roc_temp] [-R roc_temp]
+          [-t seconds] [-S] [-V] [-h]
+  -s  path of storcli64 (default: search PATH and common install locations)
+  -w  drive temperature warning in C (default $TEMP_WARN)
+  -c  drive temperature critical in C (default $TEMP_CRIT)
+  -m  media errors per drive for WARNING (default $MEDIA_ERR_WARN)
+  -r  controller (ROC) temperature warning in C (default $ROC_WARN)
+  -R  controller (ROC) temperature critical in C (default $ROC_CRIT)
+  -t  timeout per storcli call in seconds (default $TIMEOUT)
+  -S  don't use sudo (run storcli directly, e.g. when already root)
+  -V  show the version
+  -h  show this help
+EOF
+}
+
+unknown() { echo "UNKNOWN - $*"; exit 3; }
+
+while getopts "s:w:c:m:r:R:t:SVh" opt; do
+    case $opt in
+        s) STORCLI=$OPTARG ;;
+        w) TEMP_WARN=$OPTARG ;;
+        c) TEMP_CRIT=$OPTARG ;;
+        m) MEDIA_ERR_WARN=$OPTARG ;;
+        r) ROC_WARN=$OPTARG ;;
+        R) ROC_CRIT=$OPTARG ;;
+        t) TIMEOUT=$OPTARG ;;
+        S) SUDO="" ;;
+        V) echo "check_storcli $VERSION"; exit 0 ;;
+        h) usage; exit 0 ;;
+        *) usage; exit 3 ;;
+    esac
+done
+
+for v in TEMP_WARN TEMP_CRIT MEDIA_ERR_WARN ROC_WARN ROC_CRIT TIMEOUT; do
+    [[ ${!v} =~ ^[0-9]+$ ]] || unknown "invalid value '${!v}' for $(tr 'A-Z_' 'a-z ' <<< "$v") (must be a whole number)"
+done
+
+command -v jq >/dev/null || unknown "jq not found"
+
+if [ -z "$STORCLI" ]; then
+    for c in "$(command -v storcli64)" "$(command -v storcli)" /opt/MegaRAID/storcli/storcli64 \
+             /opt/MegaRAID/storcli/storcli /usr/sbin/storcli64 /usr/local/sbin/storcli64; do
+        [ -n "$c" ] && [ -x "$c" ] && { STORCLI=$c; break; }
+    done
+    [ -n "$STORCLI" ] || unknown "storcli64 not found (pass -s <path>)"
+elif [ ! -x "$STORCLI" ]; then
+    unknown "storcli not found at '$STORCLI'"
+fi
+# storcli runs from a temp dir below, so a relative path must be made absolute.
+# Symlinks are kept as they are: the sudoers rule names the path as given.
+[[ $STORCLI == /* ]] || STORCLI="$PWD/$STORCLI"
+
+# storcli writes storcli.log into the working directory; keep it out of the way.
+WORKDIR=$(mktemp -d) || unknown "cannot create temp dir"
+trap 'rm -rf "$WORKDIR"' EXIT
+
+# run_storcli ARGS... -> JSON on stdout; on failure an UNKNOWN line and status 3
+run_storcli() {
+    local out rc
+    out=$(cd "$WORKDIR" && timeout "$TIMEOUT" $SUDO "$STORCLI" "$@" 2>&1); rc=$?
+    [ $rc -eq 124 ] && { echo "UNKNOWN - storcli timed out after ${TIMEOUT}s for '$*'"; return 3; }
+    if ! jq -e '.Controllers' >/dev/null 2>&1 <<< "$out"; then
+        echo "UNKNOWN - cannot parse storcli output for '$*': $(grep -m1 . <<< "$out")"
+        return 3
+    fi
+    printf '%s' "$out"
+}
+
+# run_jq FILTER JSON -> output; UNKNOWN exit if jq fails
+run_jq() {
+    local out
+    out=$(jq -r "$1" <<< "$2" 2>&1) || unknown "cannot evaluate storcli output: $(grep -m1 . <<< "$out")"
+    printf '%s' "$out"
+}
+
+join() { local sep=$1 out=$2; shift 2; for x in "$@"; do out+="$sep$x"; done; printf '%s' "$out"; }
+
+# Severity order: OK < WARNING < UNKNOWN < CRITICAL
+state=0
+rank() { case $1 in 0) echo 0 ;; 1) echo 1 ;; 3) echo 2 ;; 2) echo 3 ;; esac; }
+raise() { [ "$(rank "$1")" -gt "$(rank "$state")" ] && state=$1; problems+=("$2"); }
+isnum() { [[ $1 =~ ^[0-9]+$ ]]; }
+
+problems=()
+perf=()
+nctrl=0; nvd=0; npd=0
+
+# Records are separated by \x1f (not tab: bash's read merges runs of tab, an IFS
+# whitespace character, so empty fields would shift the following ones).
+# Numbers that aren't numbers (e.g. "N/A") become empty / are treated as absent.
+
+# --- Controller, VD list, PD list, CacheVault/BBU -----------------------------
+# Records: N kind (count) | <sev> message | R cid roc_temp | P perfdata
+CTRL_JQ='
+def num: if type == "number" then . else (tostring | tonumber? // null) end;
+.Controllers[] | (.["Command Status"].Controller) as $cid |
+if .["Command Status"].Status != "Success" then
+    "3\u001fc\($cid) storcli: \(.["Command Status"].Description)"
+else
+    .["Response Data"] as $rd |
+    "N\u001fctrl",
+    ($rd.Status["Controller Status"] // null | select(. != null and . != "Optimal")
+        | "2\u001fc\($cid) controller \(.)"),
+    ($rd.Status["Memory Uncorrectable Errors"] // 0 | num | select(. != null and . > 0)
+        | "2\u001fc\($cid) \(.) uncorrectable memory errors"),
+    ($rd.Status["Memory Correctable Errors"] // 0 | num | select(. != null and . > 0)
+        | "1\u001fc\($cid) \(.) correctable memory errors"),
+    ($rd.HwCfg["ROC temperature(Degree Celsius)"] // null | num | select(. != null)
+        | "R\u001f\($cid)\u001f\(floor)"),
+    (($rd["VD LIST"] // [])[] | "N\u001fvd",
+        ("c\($cid) vd \(.["DG/VD"] // "") '"'"'\(.Name // "")'"'"' (\(.TYPE // ""))" as $n | (.State // "")
+         | if . == "Optl" then empty
+           elif . == "Pdgd" then "1\u001f\($n) partially degraded"
+           elif . == "Rec"  then "1\u001f\($n) recovering"
+           elif . == "Dgrd" then "2\u001f\($n) DEGRADED"
+           elif . == "OfLn" then "2\u001f\($n) OFFLINE"
+           else "2\u001f\($n) state \(.)" end)),
+    (($rd["PD LIST"] // [])[] | "N\u001fpd",
+        ("c\($cid) pd \(.["EID:Slt"] // "")" as $n | (.State // "")
+         | if test("^(Onln|UGood|GHS|DHS|JBOD)$") then empty
+           elif . == "Rbld"  then "1\u001f\($n) rebuilding"
+           elif . == "UBad"  then "2\u001f\($n) unconfigured BAD"
+           elif . == "Offln" then "2\u001f\($n) OFFLINE"
+           else "2\u001f\($n) state \(.)" end)),
+    (($rd.Cachevault_Info // [])[] |
+        (.State // null | select(. != null and . != "Optimal") | "1\u001fc\($cid) CacheVault \(.)"),
+        (.Temp // "" | tostring | capture("(?<t>[0-9]+)")? | "P\u001f'"'"'c\($cid)_cachevault_temp'"'"'=\(.t)")),
+    (($rd.BBU_Info // [])[] |
+        (.State // null | select(. != null and . != "Optimal") | "1\u001fc\($cid) BBU \(.)"),
+        (.Temp // "" | tostring | capture("(?<t>[0-9]+)")? | "P\u001f'"'"'c\($cid)_bbu_temp'"'"'=\(.t)"))
+end'
+
+ctrl_json=$(run_storcli /call show all J) || { echo "$ctrl_json"; exit 3; }
+ctrl_records=$(run_jq "$CTRL_JQ" "$ctrl_json") || { echo "$ctrl_records"; exit 3; }
+while IFS=$'\x1f' read -r kind a b; do
+    case $kind in
+        N) case $a in ctrl) nctrl=$((nctrl + 1)) ;; vd) nvd=$((nvd + 1)) ;; pd) npd=$((npd + 1)) ;; esac ;;
+        R) roc=$b
+           if [ "$roc" -ge "$ROC_CRIT" ]; then raise 2 "c$a controller temperature ${roc}C"
+           elif [ "$roc" -ge "$ROC_WARN" ]; then raise 1 "c$a controller temperature ${roc}C"; fi
+           perf+=("'c${a}_roc_temp'=$roc;$ROC_WARN;$ROC_CRIT") ;;
+        P) perf+=("$a") ;;
+        [0-3]) raise "$kind" "$a" ;;
+    esac
+done <<< "$ctrl_records"
+
+[ "$nctrl" -eq 0 ] && unknown "no usable controller found${problems:+ ($(join ", " "${problems[@]}"))}"
+
+# --- Per-drive details: error counters, SMART, temperature --------------------
+# Find every "Drive /cX/eY/sZ State" (or "/cX/sZ" without enclosure) object,
+# wherever storcli nests it (normally under "Drive ... - Detailed Information").
+# Records: F cid description (failed controller) | D path label media other pred smart temp
+DRIVE_JQ='
+def num: if type == "number" then . else (tostring | tonumber? // null) end;
+(.Controllers[] | select(.["Command Status"].Status != "Success")
+ | "F\u001f\(.["Command Status"].Controller)\u001f\(.["Command Status"].Description)"),
+(.. | objects | to_entries[]
+ | select(.key | test("^Drive /c[0-9]+(/e[0-9]+)?/s[0-9]+ State$"))
+ | (.key | capture("^Drive (?<path>/c(?<c>[0-9]+)(/e(?<e>[0-9]+))?/s(?<s>[0-9]+)) State$")) as $m
+ | .value
+ | ["D", $m.path, "c\($m.c)\(if $m.e then "_e\($m.e)" else "" end)_s\($m.s)",
+    (.["Media Error Count"] // 0 | num // ""), (.["Other Error Count"] // 0 | num // ""),
+    (.["Predictive Failure Count"] // 0 | num // ""),
+    (.["S.M.A.R.T alert flagged by drive"] // ""), (.["Drive Temperature"] // "")]
+ | map(tostring) | join("\u001f"))'
+
+detail_json=$(run_storcli /call/eall/sall show all J) || { echo "$detail_json"; exit 3; }
+drive_records=$(run_jq "$DRIVE_JQ" "$detail_json") || { echo "$drive_records"; exit 3; }
+ndrives=0
+while IFS=$'\x1f' read -r kind path label media other pred smart temp; do
+    case $kind in
+        F) raise 3 "c$path storcli: $label"; continue ;;
+        D) ;;
+        *) continue ;;
+    esac
+    ndrives=$((ndrives + 1))
+    [ "$smart" = "Yes" ] && raise 2 "$path SMART alert"
+    isnum "$pred" && [ "$pred" -gt 0 ] && raise 2 "$path $pred predictive failures"
+    isnum "$media" && [ "$media" -ge "$MEDIA_ERR_WARN" ] && raise 1 "$path $media media errors"
+    isnum "$media" && perf+=("'${label}_media_err'=${media}c")
+    isnum "$other" && perf+=("'${label}_other_err'=${other}c")
+    isnum "$pred" && perf+=("'${label}_pred_fail'=${pred}c")
+    if [[ $temp =~ ([0-9]+)C ]]; then
+        t=${BASH_REMATCH[1]}
+        if [ "$t" -ge "$TEMP_CRIT" ]; then raise 2 "$path temperature ${t}C"
+        elif [ "$t" -ge "$TEMP_WARN" ]; then raise 1 "$path temperature ${t}C"; fi
+        perf+=("'${label}_temp'=$t;$TEMP_WARN;$TEMP_CRIT")
+    fi
+done <<< "$drive_records"
+
+[ "$ndrives" -lt "$npd" ] && raise 3 "drive details found for only $ndrives of $npd drive(s)"
+
+# --- Output -------------------------------------------------------------------
+labels=(OK WARNING CRITICAL UNKNOWN)
+summary="$nctrl controller(s), $nvd VD(s), $npd PD(s)"
+if [ ${#problems[@]} -gt 0 ]; then
+    msg="${labels[$state]} - $(join ", " "${problems[@]}") [$summary]"
+else
+    msg="${labels[$state]} - all optimal [$summary]"
+fi
+echo "$msg | vd=$nvd pd=$npd ${perf[*]}"
+exit $state

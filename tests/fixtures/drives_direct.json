@@ -1,0 +1,149 @@
+{
+  "Controllers": [
+    {
+      "Command Status": {
+        "Controller": 0,
+        "Status": "Success",
+        "Description": "Show Drive Information Succeeded."
+      },
+      "Response Data": {
+        "Drive /c0/s0": [
+          {
+            "EID:Slt": "251:0",
+            "DID": 0,
+            "State": "Onln",
+            "DG": 0,
+            "Size": "16.370 TB",
+            "Intf": "SAS",
+            "Med": "HDD",
+            "SED": "N",
+            "PI": "N",
+            "SeSz": "512B",
+            "Model": "MG09SCA18TE     ",
+            "Sp": "U",
+            "Type": "-"
+          }
+        ],
+        "Drive /c0/s0 - Detailed Information": {
+          "Drive /c0/s0 State": {
+            "Shield Counter": 0,
+            "Media Error Count": 0,
+            "Other Error Count": 0,
+            "Drive Temperature": " 41C (105.80 F)",
+            "Predictive Failure Count": 0,
+            "S.M.A.R.T alert flagged by drive": "No"
+          },
+          "Drive /c0/s0 Device attributes": {
+            "SN": "0000000000",
+            "Manufacturer Id": "TOSHIBA"
+          },
+          "Drive /c0/s0 Policies/Settings": {
+            "Drive position": "DriveGroup:0, Span:0, Row:0"
+          }
+        },
+        "Drive /c0/s1": [
+          {
+            "EID:Slt": "251:1",
+            "DID": 0,
+            "State": "Onln",
+            "DG": 0,
+            "Size": "16.370 TB",
+            "Intf": "SAS",
+            "Med": "HDD",
+            "SED": "N",
+            "PI": "N",
+            "SeSz": "512B",
+            "Model": "MG09SCA18TE     ",
+            "Sp": "U",
+            "Type": "-"
+          }
+        ],
+        "Drive /c0/s1 - Detailed Information": {
+          "Drive /c0/s1 State": {
+            "Shield Counter": 0,
+            "Media Error Count": 0,
+            "Other Error Count": 0,
+            "Drive Temperature": " 42C (107.60 F)",
+            "Predictive Failure Count": 0,
+            "S.M.A.R.T alert flagged by drive": "No"
+          },
+          "Drive /c0/s1 Device attributes": {
+            "SN": "0000000000",
+            "Manufacturer Id": "TOSHIBA"
+          },
+          "Drive /c0/s1 Policies/Settings": {
+            "Drive position": "DriveGroup:0, Span:0, Row:0"
+          }
+        },
+        "Drive /c0/s4": [
+          {
+            "EID:Slt": "251:4",
+            "DID": 0,
+            "State": "Onln",
+            "DG": 0,
+            "Size": "16.370 TB",
+            "Intf": "SAS",
+            "Med": "HDD",
+            "SED": "N",
+            "PI": "N",
+            "SeSz": "512B",
+            "Model": "MG09SCA18TE     ",
+            "Sp": "U",
+            "Type": "-"
+          }
+        ],
+        "Drive /c0/s4 - Detailed Information": {
+          "Drive /c0/s4 State": {
+            "Shield Counter": 0,
+            "Media Error Count": 0,
+            "Other Error Count": 0,
+            "Drive Temperature": " 41C (105.80 F)",
+            "Predictive Failure Count": 0,
+            "S.M.A.R.T alert flagged by drive": "No"
+          },
+          "Drive /c0/s4 Device attributes": {
+            "SN": "0000000000",
+            "Manufacturer Id": "TOSHIBA"
+          },
+          "Drive /c0/s4 Policies/Settings": {
+            "Drive position": "DriveGroup:0, Span:0, Row:0"
+          }
+        },
+        "Drive /c0/s5": [
+          {
+            "EID:Slt": "251:5",
+            "DID": 0,
+            "State": "Onln",
+            "DG": 0,
+            "Size": "16.370 TB",
+            "Intf": "SAS",
+            "Med": "HDD",
+            "SED": "N",
+            "PI": "N",
+            "SeSz": "512B",
+            "Model": "MG09SCA18TE     ",
+            "Sp": "U",
+            "Type": "-"
+          }
+        ],
+        "Drive /c0/s5 - Detailed Information": {
+          "Drive /c0/s5 State": {
+            "Shield Counter": 0,
+            "Media Error Count": 0,
+            "Other Error Count": 0,
+            "Drive Temperature": " 42C (107.60 F)",
+            "Predictive Failure Count": 0,
+            "S.M.A.R.T alert flagged by drive": "No"
+          },
+          "Drive /c0/s5 Device attributes": {
+            "SN": "0000000000",
+            "Manufacturer Id": "TOSHIBA"
+          },
+          "Drive /c0/s5 Policies/Settings": {
+            "Drive position": "DriveGroup:0, Span:0, Row:0"
+          }
+        }
+      }
+    }
+  ]
+}
