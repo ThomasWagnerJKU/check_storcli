@@ -68,14 +68,16 @@ doesn't pile up in the monitoring user's directory.
 
 ```
 check_storcli.ps1
-check_storcli.ps1 "" 45 55
+check_storcli.ps1 "C:\Program Files (x86)\MegaRAID Storage Manager\StorCLI64.exe" 45 55
 ```
 
 Parameters, in this order: `-StorCli`, `-TempWarn`, `-TempCrit`,
 `-MediaErrWarn`, `-RocWarn`, `-RocCrit`, `-TimeoutSec`, with the same defaults
 as the Linux options. SNClient passes arguments quoted, so named parameters
 don't bind there; give them positionally instead, as in the example above
-(other drive temperature thresholds, default storcli path). Without `-StorCli`
+(other drive temperature thresholds). An empty first argument (`""`) doesn't
+survive SNClient's quoting, so to change a later parameter, pass the storcli
+path explicitly. Without `-StorCli`
 the script searches `PATH` and the usual install locations, including the copy
 that comes with MegaRAID Storage Manager
 (`C:\Program Files (x86)\MegaRAID Storage Manager\StorCLI64.exe`).

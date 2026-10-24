@@ -16,7 +16,8 @@
   Exit codes: 0 OK, 1 WARNING, 2 CRITICAL, 3 UNKNOWN
 
   SNClient passes arguments quoted, so named parameters don't bind; give them
-  positionally in the order below, e.g. check_storcli.ps1 "" 45 55.
+  positionally in the order below. An empty first argument ("") doesn't survive
+  SNClient's quoting, so pass the storcli path explicitly to change later ones.
 
 .PARAMETER StorCli
   Path to storcli64.exe. If omitted, PATH and common install locations are searched.
