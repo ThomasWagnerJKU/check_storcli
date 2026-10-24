@@ -129,15 +129,27 @@ number (e.g. `N/A`) is treated as absent. The plugin prints exactly one line.
 - `cN_eE_sS_media_err`, `_other_err`, `_pred_fail`: drive error counters
 - `cN_cachevault_temp`, `cN_bbu_temp`: CacheVault/BBU temperature, if present
 
+## Bash completion
+
+`completions/check_storcli` completes the options and the path of storcli64
+for `-s`. The packages install it; otherwise copy it to bash-completion's
+directory:
+
+```sh
+install -D -m 0644 completions/check_storcli /usr/share/bash-completion/completions/check_storcli
+```
+
 ## Tests
 
 ```sh
 tests/run_tests.sh
+tests/test_completion.sh
 ```
 
-The tests replay recorded storcli JSON (from a MegaRAID 9580-8i8e, serial
-numbers removed) through a fake storcli and sudo. They need `jq`. The Windows
-variant has no automated tests.
+`run_tests.sh` replays recorded storcli JSON (from a MegaRAID 9580-8i8e,
+serial numbers removed) through a fake storcli and sudo, and needs `jq`.
+`test_completion.sh` tests the bash completion. The Windows variant has no
+automated tests.
 
 ## License
 

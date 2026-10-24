@@ -86,7 +86,7 @@ expect "unparsable output" 3 "UNKNOWN - cannot parse storcli output for '/call s
 expect "storcli hangs" 3 "UNKNOWN - storcli timed out after 1s" HANG=1 -- -t 1
 expect "invalid number" 3 "UNKNOWN - invalid value 'abc' for temp warn" -- -w abc
 expect "help" 0 "Usage:" -- -h
-expect "version" 0 "check_storcli 0.1" -- -V
+expect "version" 0 "check_storcli 0.2" -- -V
 
 echo "$count tests, $([ $fail -eq 0 ] && echo "all passed" || echo "FAILURES")"
 exit $fail

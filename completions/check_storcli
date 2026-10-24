@@ -1,0 +1,22 @@
+# bash completion for check_storcli                               -*- shell-script -*-
+
+_check_storcli()
+{
+    local cur=${COMP_WORDS[COMP_CWORD]} prev=${COMP_WORDS[COMP_CWORD-1]}
+    COMPREPLY=()
+
+    case $prev in
+        -s)
+            compopt -o filenames 2>/dev/null
+            mapfile -t COMPREPLY < <(compgen -f -- "$cur")
+            return
+            ;;
+        -w | -c | -m | -r | -R | -t)
+            return
+            ;;
+    esac
+
+    # no positional arguments: offer the options
+    mapfile -t COMPREPLY < <(compgen -W '-s -w -c -m -r -R -t -S -V -h' -- "$cur")
+}
+complete -F _check_storcli check_storcli
